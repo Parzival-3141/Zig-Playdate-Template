@@ -14,13 +14,15 @@ pub const PlaydateAPI = extern struct {
 };
 
 ////////Buttons//////////////
-pub const PDButtons = c_int;
-pub const BUTTON_LEFT = (1 << 0);
-pub const BUTTON_RIGHT = (1 << 1);
-pub const BUTTON_UP = (1 << 2);
-pub const BUTTON_DOWN = (1 << 3);
-pub const BUTTON_B = (1 << 4);
-pub const BUTTON_A = (1 << 5);
+pub const PDButtons = packed struct(c_int) {
+    left: bool,
+    right: bool,
+    up: bool,
+    down: bool,
+    b: bool,
+    a: bool,
+    _: u26 = 0,
+};
 
 ///////////////System/////////////////////////
 pub const PDMenuItem = opaque {};
@@ -34,7 +36,9 @@ pub const PDSystemEvent = enum(c_int) {
     EventPause,
     EventResume,
     EventTerminate,
-    EventKeyPressed, // arg is keycode
+    /// `arg` is keycode
+    EventKeyPressed,
+    /// `arg` is keycode
     EventKeyReleased,
     EventLowPower,
 };
@@ -44,11 +48,18 @@ pub const PDLanguage = enum(c_int) {
     PDLanguageUnknown,
 };
 
-pub const PDPeripherals = c_int;
-const PERIPHERAL_NONE = 0;
-const PERIPHERAL_ACCELEROMETER = (1 << 0);
-// ...
-const PERIPHERAL_ALL = 0xFFFF;
+pub const PDPeripherals = packed struct(c_int) {
+    accelerometer: bool,
+    _: u31 = 0,
+
+    pub inline fn are_none_enabled(p: PDPeripherals) bool {
+        return @as(c_int, @bitCast(p)) == 0;
+    }
+
+    pub inline fn are_all_enabled(p: PDPeripherals) bool {
+        return @as(c_int, @bitCast(p)) == 0xFFFF;
+    }
+};
 
 pub const PDStringEncoding = enum(c_int) {
     ASCIIEncoding,
@@ -58,15 +69,20 @@ pub const PDStringEncoding = enum(c_int) {
 
 pub const PDDateTime = extern struct {
     year: u16,
-    month: u8, // 1-12
-    day: u8, // 1-31
-    weekday: u8, // 1=monday-7=sunday
-    hour: u8, // 0-23
+    /// 1-12
+    month: u8,
+    /// 1-31
+    day: u8,
+    /// 1=monday-7=sunday
+    weekday: u8,
+    /// 0-23
+    hour: u8,
     minute: u8,
     second: u8,
 };
 
 pub const PlaydateSys = extern struct {
+    /// If ptr = null -> malloc. If size = 0 -> free
     realloc: *const fn (ptr: ?*anyopaque, size: usize) callconv(.C) ?*anyopaque,
     formatString: *const fn (ret: ?*[*c]u8, fmt: [*c]const u8, ...) callconv(.C) c_int,
     logToConsole: *const fn (fmt: [*c]const u8, ...) callconv(.C) void,
@@ -83,7 +99,8 @@ pub const PlaydateSys = extern struct {
     getCrankChange: *const fn () callconv(.C) f32,
     getCrankAngle: *const fn () callconv(.C) f32,
     isCrankDocked: *const fn () callconv(.C) c_int,
-    setCrankSoundsDisabled: *const fn (flag: c_int) callconv(.C) c_int, // returns previous setting
+    /// returns previous setting
+    setCrankSoundsDisabled: *const fn (flag: c_int) callconv(.C) c_int,
 
     getFlipped: *const fn () callconv(.C) c_int,
     setAutoLockDisabled: *const fn (disable: c_int) callconv(.C) void,
@@ -125,21 +142,14 @@ pub const PlaydateSys = extern struct {
 pub const LCD_COLUMNS = 400;
 pub const LCD_ROWS = 240;
 pub const LCD_ROWSIZE = 52;
+pub const LCD_SCREEN_RECT = LCDRect.make(0, 0, LCD_COLUMNS, LCD_ROWS);
 pub const LCDBitmap = opaque {};
 pub const LCDVideoPlayer = opaque {};
-pub const PlaydateVideo = extern struct {
-    loadVideo: *const fn ([*c]const u8) callconv(.C) ?*LCDVideoPlayer,
-    freePlayer: *const fn (?*LCDVideoPlayer) callconv(.C) void,
-    setContext: *const fn (?*LCDVideoPlayer, ?*LCDBitmap) callconv(.C) c_int,
-    useScreenContext: *const fn (?*LCDVideoPlayer) callconv(.C) void,
-    renderFrame: *const fn (?*LCDVideoPlayer, c_int) callconv(.C) c_int,
-    getError: *const fn (?*LCDVideoPlayer) callconv(.C) [*c]const u8,
-    getInfo: *const fn (?*LCDVideoPlayer, [*c]c_int, [*c]c_int, [*c]f32, [*c]c_int, [*c]c_int) callconv(.C) void,
-    getContext: *const fn (?*LCDVideoPlayer) callconv(.C) ?*LCDBitmap,
-};
 
+/// 8x8 pattern: 8 rows image data, 8 rows mask
 pub const LCDPattern = [16]u8;
-pub const LCDColor = usize; //Pointer to LCDPattern or a LCDSolidColor value
+/// Pointer to `LCDPattern` or a `LCDSolidColor` value
+pub const LCDColor = usize;
 pub const LCDSolidColor = enum(c_int) {
     ColorBlack,
     ColorWhite,
@@ -186,17 +196,45 @@ pub const LCDFontGlyph = opaque {};
 pub const LCDFontData = opaque {};
 pub const LCDRect = extern struct {
     left: c_int,
+    /// not inclusive
     right: c_int,
     top: c_int,
+    /// not inclusive
     bottom: c_int,
+
+    pub inline fn make(x: c_int, y: c_int, width: c_int, height: c_int) LCDRect {
+        return .{ .left = x, .right = x + width, .top = y, .bottom = y + height };
+    }
+
+    pub inline fn translate(r: LCDRect, dx: c_int, dy: c_int) LCDRect {
+        return .{
+            .left = r.left + dx,
+            .right = r.right + dx,
+            .top = r.top + dy,
+            .bottom = r.bottom + dy,
+        };
+    }
+};
+
+pub const PlaydateVideo = extern struct {
+    loadVideo: *const fn (path: [*:0]const u8) callconv(.C) ?*LCDVideoPlayer,
+    freePlayer: *const fn (p: *LCDVideoPlayer) callconv(.C) void,
+    setContext: *const fn (p: *LCDVideoPlayer, context: *LCDBitmap) callconv(.C) c_int,
+    useScreenContext: *const fn (p: *LCDVideoPlayer) callconv(.C) void,
+    renderFrame: *const fn (p: *LCDVideoPlayer, n: c_int) callconv(.C) c_int,
+    getError: *const fn (p: *LCDVideoPlayer) callconv(.C) [*:0]const u8,
+    getInfo: *const fn (p: *LCDVideoPlayer, outWidth: ?*c_int, outHeight: ?*c_int, outFrameRate: ?*f32, outFrameCount: ?*c_int, outCurrentFrame: ?*c_int) callconv(.C) void,
+    getContext: *const fn (p: *LCDVideoPlayer) callconv(.C) ?*LCDBitmap,
 };
 
 pub const PlaydateGraphics = extern struct {
     video: *const PlaydateVideo,
+
     // Drawing Functions
     clear: *const fn (color: LCDColor) callconv(.C) void,
     setBackgroundColor: *const fn (color: LCDSolidColor) callconv(.C) void,
-    setStencil: *const fn (stencil: ?*LCDBitmap) callconv(.C) void, // deprecated in favor of setStencilImage, which adds a "tile" flag
+    /// deprecated in favor of `setStencilImage`, which adds a "tile" flag
+    setStencil: *const fn (stencil: ?*LCDBitmap) callconv(.C) void,
     setDrawMode: *const fn (mode: LCDBitmapDrawMode) callconv(.C) void,
     setDrawOffset: *const fn (dx: c_int, dy: c_int) callconv(.C) void,
     setClipRect: *const fn (x: c_int, y: c_int, width: c_int, height: c_int) callconv(.C) void,
