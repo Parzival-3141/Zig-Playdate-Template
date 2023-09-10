@@ -99,7 +99,7 @@ pub const PlaydateSys = extern struct {
     getCrankChange: *const fn () callconv(.C) f32,
     getCrankAngle: *const fn () callconv(.C) f32,
     isCrankDocked: *const fn () callconv(.C) c_int,
-    /// returns previous setting
+    /// Returns previous setting
     setCrankSoundsDisabled: *const fn (flag: c_int) callconv(.C) c_int,
 
     getFlipped: *const fn () callconv(.C) c_int,
@@ -134,7 +134,7 @@ pub const PlaydateSys = extern struct {
     convertEpochToDateTime: *const fn (epoch: u32, datetime: ?*PDDateTime) callconv(.C) void,
     convertDateTimeToEpoch: *const fn (datetime: ?*PDDateTime) callconv(.C) u32,
 
-    //2.0
+    // 2.0
     clearICache: *const fn () callconv(.C) void,
 };
 
@@ -196,10 +196,10 @@ pub const LCDFontGlyph = opaque {};
 pub const LCDFontData = opaque {};
 pub const LCDRect = extern struct {
     left: c_int,
-    /// not inclusive
+    /// Not inclusive
     right: c_int,
     top: c_int,
-    /// not inclusive
+    /// Not inclusive
     bottom: c_int,
 
     pub inline fn make(x: c_int, y: c_int, width: c_int, height: c_int) LCDRect {
@@ -233,7 +233,7 @@ pub const PlaydateGraphics = extern struct {
     // Drawing Functions
     clear: *const fn (color: LCDColor) callconv(.C) void,
     setBackgroundColor: *const fn (color: LCDSolidColor) callconv(.C) void,
-    /// deprecated in favor of `setStencilImage`, which adds a "tile" flag
+    /// Deprecated in favor of `setStencilImage`, which adds a "tile" flag
     setStencil: *const fn (stencil: ?*LCDBitmap) callconv(.C) void,
     setDrawMode: *const fn (mode: LCDBitmapDrawMode) callconv(.C) void,
     setDrawOffset: *const fn (dx: c_int, dy: c_int) callconv(.C) void,
@@ -281,9 +281,12 @@ pub const PlaydateGraphics = extern struct {
     getTextWidth: *const fn (font: ?*LCDFont, text: ?*const anyopaque, len: usize, encoding: PDStringEncoding, tracking: c_int) callconv(.C) c_int,
 
     // raw framebuffer access
-    getFrame: *const fn () callconv(.C) [*c]u8, // row stride = LCD_ROWSIZE
-    getDisplayFrame: *const fn () callconv(.C) [*c]u8, // row stride = LCD_ROWSIZE
-    getDebugBitmap: *const fn () callconv(.C) ?*LCDBitmap, // valid in simulator only, function is null on device
+    /// Row stride = `LCD_ROWSIZE`
+    getFrame: *const fn () callconv(.C) [*c]u8,
+    /// Row stride = `LCD_ROWSIZE`
+    getDisplayFrame: *const fn () callconv(.C) [*c]u8,
+    /// Valid in simulator only, function is null on device
+    getDebugBitmap: *const fn () callconv(.C) ?*LCDBitmap,
     copyFrameBufferBitmap: *const fn () callconv(.C) ?*LCDBitmap,
     markUpdatedRows: *const fn (start: c_int, end: c_int) callconv(.C) void,
     display: *const fn () callconv(.C) void,
@@ -409,9 +412,9 @@ pub const PlaydateSound = extern struct {
     signal: *const PlaydateSoundSignal,
 };
 
-//data is mono
+/// Data is mono
 pub const RecordCallback = *const fn (context: ?*anyopaque, buffer: [*c]i16, length: c_int) callconv(.C) c_int;
-// len is # of samples in each buffer, function should return 1 if it produced output
+/// `len` is # of samples in each buffer, function should return 1 if it produced output
 pub const AudioSourceFunction = *const fn (context: ?*anyopaque, left: [*c]i16, right: [*c]i16, len: c_int) callconv(.C) c_int;
 pub const SndCallbackProc = *const fn (c: ?*SoundSource) callconv(.C) void;
 
@@ -549,17 +552,17 @@ pub inline fn pd_frequencyToNote(f: f32) MIDINote {
     return 12 * std.math.log(f32, 2, f) - 36.376316562;
 }
 
-// generator render callback
-// samples are in Q8.24 format. left is either the left channel or the single mono channel,
-// right is non-NULL only if the stereo flag was set in the setGenerator() call.
-// nsamples is at most 256 but may be shorter
-// rate is Q0.32 per-frame phase step, drate is per-frame rate step (i.e., do rate += drate every frame)
-// return value is the number of sample frames rendered
+/// Generator render callback.
+/// Samples are in Q8.24 format. `left` is either the left channel or the single mono channel,
+/// `right` is non-NULL only if the stereo flag was set in the `setGenerator()` call.
+/// `nsamples` is at most 256 but may be shorter.
+/// `rate` is Q0.32 per-frame phase step, `drate` is per-frame rate step (i.e., do `rate += drate` every frame).
+/// Return value is the number of sample frames rendered.
 pub const SynthRenderFunc = *const fn (userdata: ?*anyopaque, left: [*c]i32, right: [*c]i32, nsamples: c_int, rate: u32, drate: i32) callconv(.C) c_int;
 
 // generator event callbacks
 
-// len == -1 if indefinite
+/// `len == -1` if indefinite
 pub const SynthNoteOnFunc = *const fn (userdata: ?*anyopaque, note: MIDINote, velocity: f32, len: f32) callconv(.C) void;
 
 pub const SynthReleaseFunc = *const fn (?*anyopaque, c_int) callconv(.C) void;
@@ -616,7 +619,8 @@ pub const PlaydateSoundSynth = extern struct {
     isPlaying: *const fn (synth: ?*PDSynth) callconv(.C) c_int,
 
     // 1.13
-    getEnvelope: *const fn (synth: ?*PDSynth) callconv(.C) ?*PDSynthEnvelope, // synth keeps ownership--don't free this!
+    /// `synth` keeps ownership -- don't free this!
+    getEnvelope: *const fn (synth: ?*PDSynth) callconv(.C) ?*PDSynthEnvelope,
 };
 
 pub const SequenceTrack = opaque {};
@@ -785,9 +789,9 @@ pub const PlaydateSoundInstrument = extern struct {
 
 pub const PDSynthSignal = opaque {};
 pub const SignalStepFunc = *const fn (userdata: ?*anyopaque, ioframes: [*c]c_int, ifval: ?*f32) callconv(.C) f32;
-// len = -1 for indefinite
+/// `len` = -1 for indefinite
 pub const SignalNoteOnFunc = *const fn (userdata: ?*anyopaque, note: MIDINote, vel: f32, len: f32) callconv(.C) void;
-// ended = 0 for note release, = 1 when note stops playing
+/// `ended` = 0 for note release, = 1 when note stops playing
 pub const SignalNoteOffFunc = *const fn (userdata: ?*anyopaque, stopped: c_int, offset: c_int) callconv(.C) void;
 pub const SignalDeallocFunc = *const fn (userdata: ?*anyopaque) callconv(.C) void;
 pub const PlaydateSoundSignal = struct {
@@ -864,7 +868,7 @@ pub const PlaydateSoundEffectDelayline = extern struct {
     setFeedback: *const fn (filter: ?*DelayLine, fb: f32) callconv(.C) void,
     addTap: *const fn (filter: ?*DelayLine, delay: c_int) callconv(.C) ?*DelayLineTap,
 
-    // note that DelayLineTap is a SoundSource, not a SoundEffect
+    /// Note that `DelayLineTap` is a `SoundSource`, not a `SoundEffect`
     freeTap: *const fn (tap: ?*DelayLineTap) callconv(.C) void,
     setTapDelay: *const fn (t: ?*DelayLineTap, frames: c_int) callconv(.C) void,
     setTapDelayModulator: *const fn (t: ?*DelayLineTap, mod: ?*PDSynthSignalValue) callconv(.C) void,
@@ -918,25 +922,39 @@ pub const CollisionVector = extern struct {
 };
 
 pub const SpriteCollisionInfo = extern struct {
-    sprite: ?*LCDSprite, // The sprite being moved
-    other: ?*LCDSprite, // The sprite being moved
-    responseType: SpriteCollisionResponseType, // The result of collisionResponse
-    overlaps: u8, // True if the sprite was overlapping other when the collision started. False if it didn’t overlap but tunneled through other.
-    ti: f32, // A number between 0 and 1 indicating how far along the movement to the goal the collision occurred
-    move: CollisionPoint, // The difference between the original coordinates and the actual ones when the collision happened
-    normal: CollisionVector, // The collision normal; usually -1, 0, or 1 in x and y. Use this value to determine things like if your character is touching the ground.
-    touch: CollisionPoint, // The coordinates where the sprite started touching other
-    spriteRect: PDRect, // The rectangle the sprite occupied when the touch happened
-    otherRect: PDRect, // The rectangle the sprite being collided with occupied when the touch happened
+    /// The sprite being moved
+    sprite: ?*LCDSprite,
+    /// The other sprite being moved
+    other: ?*LCDSprite,
+    /// The result of collisionResponse
+    responseType: SpriteCollisionResponseType,
+    /// `true` if the sprite was overlapping other when the collision started. `false` if it didn’t overlap but tunneled through other.
+    overlaps: u8,
+    /// A number between 0 and 1 indicating how far along the movement to the goal the collision occurred
+    ti: f32,
+    /// The difference between the original coordinates and the actual ones when the collision happened
+    move: CollisionPoint,
+    /// The collision normal; usually -1, 0, or 1 in x and y. Use this value to determine things like if your character is touching the ground.
+    normal: CollisionVector,
+    /// The coordinates where the sprite started touching other
+    touch: CollisionPoint,
+    /// The rectangle the sprite occupied when the touch happened
+    spriteRect: PDRect,
+    /// The rectangle the sprite being collided with occupied when the touch happened
+    otherRect: PDRect,
 };
 
 pub const SpriteQueryInfo = extern struct {
-    sprite: ?*LCDSprite, // The sprite being intersected by the segment
-    // ti1 and ti2 are numbers between 0 and 1 which indicate how far from the starting point of the line segment the collision happened
-    ti1: f32, // entry point
-    ti2: f32, // exit point
-    entryPoint: CollisionPoint, // The coordinates of the first intersection between sprite and the line segment
-    exitPoint: CollisionPoint, // The coordinates of the second intersection between sprite and the line segment
+    /// The sprite being intersected by the segment
+    sprite: ?*LCDSprite,
+    /// Entry point between 0 and 1. Indicates how far from the starting point of the line segment the collision happened
+    ti1: f32,
+    /// Exit point between 0 and 1. Indicates how far from the starting point of the line segment the collision happened
+    ti2: f32,
+    /// The coordinates of the first intersection between sprite and the line segment
+    entryPoint: CollisionPoint,
+    /// The coordinates of the second intersection between sprite and the line segment
+    exitPoint: CollisionPoint,
 };
 
 pub const LCDSprite = opaque {};
@@ -977,7 +995,8 @@ pub const PlaydateSprite = extern struct {
     setDrawMode: *const fn (sprite: ?*LCDSprite, mode: LCDBitmapDrawMode) callconv(.C) void,
     setImageFlip: *const fn (sprite: ?*LCDSprite, flip: LCDBitmapFlip) callconv(.C) void,
     getImageFlip: *const fn (sprite: ?*LCDSprite) callconv(.C) LCDBitmapFlip,
-    setStencil: *const fn (sprite: ?*LCDSprite, mode: ?*LCDBitmap) callconv(.C) void, // deprecated in favor of setStencilImage()
+    /// Deprecated in favor of `setStencilImage()`
+    setStencil: *const fn (sprite: ?*LCDSprite, mode: ?*LCDBitmap) callconv(.C) void,
 
     setClipRect: *const fn (sprite: ?*LCDSprite, clipRect: LCDRect) callconv(.C) void,
     clearClipRect: *const fn (sprite: ?*LCDSprite) callconv(.C) void,
@@ -1010,19 +1029,30 @@ pub const PlaydateSprite = extern struct {
     getCollideRect: *const fn (sprite: ?*LCDSprite) callconv(.C) PDRect,
     clearCollideRect: *const fn (sprite: ?*LCDSprite) callconv(.C) void,
 
-    // caller is responsible for freeing the returned array for all collision methods
+    /// Caller is responsible for freeing the returned array for all collision methods
     setCollisionResponseFunction: *const fn (sprite: ?*LCDSprite, func: LCDSpriteCollisionFilterProc) callconv(.C) void,
-    checkCollisions: *const fn (sprite: ?*LCDSprite, goalX: f32, goalY: f32, actualX: ?*f32, actualY: ?*f32, len: ?*c_int) callconv(.C) [*c]SpriteCollisionInfo, // access results using const info = &results[i];
+    /// Access results using `const info = &results[i];`
+    /// Caller is responsible for freeing the returned array
+    checkCollisions: *const fn (sprite: ?*LCDSprite, goalX: f32, goalY: f32, actualX: ?*f32, actualY: ?*f32, len: ?*c_int) callconv(.C) [*c]SpriteCollisionInfo,
+    /// Caller is responsible for freeing the returned array
     moveWithCollisions: *const fn (sprite: ?*LCDSprite, goalX: f32, goalY: f32, actualX: ?*f32, actualY: ?*f32, len: ?*c_int) callconv(.C) [*c]SpriteCollisionInfo,
+    /// Caller is responsible for freeing the returned array
     querySpritesAtPoint: *const fn (x: f32, y: f32, len: ?*c_int) callconv(.C) [*c]?*LCDSprite,
+    /// Caller is responsible for freeing the returned array
     querySpritesInRect: *const fn (x: f32, y: f32, width: f32, height: f32, len: ?*c_int) callconv(.C) [*c]?*LCDSprite,
+    /// Caller is responsible for freeing the returned array
     querySpritesAlongLine: *const fn (x1: f32, y1: f32, x2: f32, y2: f32, len: ?*c_int) callconv(.C) [*c]?*LCDSprite,
-    querySpriteInfoAlongLine: *const fn (x1: f32, y1: f32, x2: f32, y2: f32, len: ?*c_int) callconv(.C) [*c]SpriteQueryInfo, // access results using const info = &results[i];
+    /// Access results using const info = &results[i];
+    /// Caller is responsible for freeing the returned array
+    querySpriteInfoAlongLine: *const fn (x1: f32, y1: f32, x2: f32, y2: f32, len: ?*c_int) callconv(.C) [*c]SpriteQueryInfo,
+    /// Caller is responsible for freeing the returned array
     overlappingSprites: *const fn (sprite: ?*LCDSprite, len: ?*c_int) callconv(.C) [*c]?*LCDSprite,
+    /// Caller is responsible for freeing the returned array
     allOverlappingSprites: *const fn (len: ?*c_int) callconv(.C) [*c]?*LCDSprite,
 
     // added in 1.7
-    setStencilPattern: *const fn (sprite: ?*LCDSprite, pattern: [*c]u8) callconv(.C) void, //pattern is 8 bytes
+    /// `pattern` is 8 bytes
+    setStencilPattern: *const fn (sprite: ?*LCDSprite, pattern: [*c]u8) callconv(.C) void,
     clearStencil: *const fn (sprite: ?*LCDSprite) callconv(.C) void,
 
     setUserdata: *const fn (sprite: ?*LCDSprite, userdata: ?*anyopaque) callconv(.C) void,
@@ -1037,7 +1067,7 @@ pub const LuaState = ?*anyopaque;
 pub const LuaCFunction = ?*const fn (state: ?*LuaState) callconv(.C) c_int;
 pub const LuaUDObject = opaque {};
 
-//literal value
+/// Literal value
 pub const LValType = enum(c_int) {
     Int = 0,
     Float = 1,
@@ -1068,8 +1098,9 @@ pub const LuaVal = extern struct {
     },
 };
 pub const PlaydateLua = extern struct {
-    // these two return 1 on success, else 0 with an error message in outErr
+    /// Returns 1 on success, else 0 with an error message in `outErr`
     addFunction: *const fn (f: LuaCFunction, name: [*c]const u8, outErr: ?*[*c]const u8) callconv(.C) c_int,
+    /// Returns 1 on success, else 0 with an error message in `outErr`
     registerClass: *const fn (name: [*c]const u8, reg: ?*const LuaReg, vals: [*c]const LuaVal, isstatic: c_int, outErr: ?*[*c]const u8) callconv(.C) c_int,
 
     pushFunction: *const fn (f: LuaCFunction) callconv(.C) void,
@@ -1110,8 +1141,9 @@ pub const PlaydateLua = extern struct {
     setObjectValue: *const fn (obj: ?*LuaUDObject, slot: c_int) callconv(.C) void,
     getObjectValue: *const fn (obj: ?*LuaUDObject, slot: c_int) callconv(.C) c_int,
 
-    // calling lua from C has some overhead. use sparingly!
+    /// Calling lua from C has some overhead. use sparingly!
     callFunction_deprecated: *const fn (name: [*c]const u8, nargs: c_int) callconv(.C) void,
+    /// Calling lua from C has some overhead. use sparingly!
     callFunction: *const fn (name: [*c]const u8, nargs: c_int, outerr: ?*[*c]const u8) callconv(.C) c_int,
 };
 
@@ -1181,8 +1213,10 @@ pub const JSONDecoder = extern struct {
     didDecodeSublist: ?*const fn (decoder: ?*JSONDecoder, name: [*c]const u8, type: JSONValueType) callconv(.C) ?*anyopaque,
 
     userdata: ?*anyopaque,
-    returnString: c_int, // when set, the decoder skips parsing and returns the current subtree as a string
-    path: [*c]const u8, // updated during parsing, reflects current position in tree
+    /// When set, the decoder skips parsing and returns the current subtree as a string
+    returnString: c_int,
+    /// Updated during parsing, reflects current position in tree
+    path: [*c]const u8,
 };
 
 // convenience functions for setting up a table-only or array-only decoder
