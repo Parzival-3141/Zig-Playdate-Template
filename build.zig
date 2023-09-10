@@ -16,7 +16,7 @@ pub fn build(b: *std.build.Builder) !void {
         .optimize = optimize,
         .target = .{},
     });
-    _ = writer.addCopyFile(lib.getOutputSource(), "pdex" ++ switch (os_tag) {
+    _ = writer.addCopyFile(lib.getEmittedBin(), "pdex" ++ switch (os_tag) {
         .windows => ".dll",
         .macos => ".dylib",
         .linux => ".so",
@@ -35,11 +35,11 @@ pub fn build(b: *std.build.Builder) !void {
     });
     elf.force_pic = true;
     elf.link_emit_relocs = true;
-    elf.setLinkerScriptPath(.{ .path = "link_map.ld" });
+    elf.setLinkerScript(.{ .path = "link_map.ld" });
     if (optimize == .ReleaseFast) {
         elf.omit_frame_pointer = true;
     }
-    _ = writer.addCopyFile(elf.getOutputSource(), "pdex.elf");
+    _ = writer.addCopyFile(elf.getEmittedBin(), "pdex.elf");
 
     // WriteFile doesn't support copying whole directories.
     var assets = try b.build_root.handle.openIterableDir("assets", .{});
@@ -61,7 +61,7 @@ pub fn build(b: *std.build.Builder) !void {
     };
 
     const pdc = b.addSystemCommand(&.{ pdc_path, "--skip-unknown" });
-    pdc.addDirectorySourceArg(source_dir);
+    pdc.addDirectoryArg(source_dir);
     pdc.setName("pdc");
     const pdx = pdc.addOutputFileArg(pdx_file_name);
 
@@ -72,7 +72,7 @@ pub fn build(b: *std.build.Builder) !void {
     });
 
     const run_cmd = b.addSystemCommand(&.{pd_simulator_path});
-    run_cmd.addDirectorySourceArg(pdx);
+    run_cmd.addDirectoryArg(pdx);
     run_cmd.setName("PlaydateSimulator");
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
