@@ -84,15 +84,15 @@ pub const PDDateTime = extern struct {
 pub const PlaydateSys = extern struct {
     /// If ptr = null -> malloc. If size = 0 -> free
     realloc: *const fn (ptr: ?*anyopaque, size: usize) callconv(.C) ?*anyopaque,
-    formatString: *const fn (ret: ?*[*c]u8, fmt: [*c]const u8, ...) callconv(.C) c_int,
-    logToConsole: *const fn (fmt: [*c]const u8, ...) callconv(.C) void,
-    @"error": *const fn (fmt: [*c]const u8, ...) callconv(.C) void,
+    formatString: *const fn (ret: *?[*:0]u8, fmt: [*:0]const u8, ...) callconv(.C) c_int,
+    logToConsole: *const fn (fmt: [*:0]const u8, ...) callconv(.C) void,
+    @"error": *const fn (fmt: [*:0]const u8, ...) callconv(.C) void,
     getLanguage: *const fn () callconv(.C) PDLanguage,
     getCurrentTimeMilliseconds: *const fn () callconv(.C) c_uint,
     getSecondsSinceEpoch: *const fn (milliseconds: ?*c_uint) callconv(.C) c_uint,
     drawFPS: *const fn (x: c_int, y: c_int) callconv(.C) void,
 
-    setUpdateCallback: *const fn (update: ?PDCallbackFunction, userdata: ?*anyopaque) callconv(.C) void,
+    setUpdateCallback: *const fn (update: PDCallbackFunction, userdata: ?*anyopaque) callconv(.C) void,
     getButtonState: *const fn (current: ?*PDButtons, pushed: ?*PDButtons, released: ?*PDButtons) callconv(.C) void,
     setPeripheralsEnabled: *const fn (mask: PDPeripherals) callconv(.C) void,
     getAccelerometer: *const fn (outx: ?*f32, outy: ?*f32, outz: ?*f32) callconv(.C) void,
@@ -105,18 +105,18 @@ pub const PlaydateSys = extern struct {
     getFlipped: *const fn () callconv(.C) c_int,
     setAutoLockDisabled: *const fn (disable: c_int) callconv(.C) void,
 
-    setMenuImage: *const fn (bitmap: ?*LCDBitmap, xOffset: c_int) callconv(.C) void,
-    addMenuItem: *const fn (title: [*c]const u8, callback: ?PDMenuItemCallbackFunction, userdata: ?*anyopaque) callconv(.C) ?*PDMenuItem,
-    addCheckmarkMenuItem: *const fn (title: [*c]const u8, value: c_int, callback: ?PDMenuItemCallbackFunction, userdata: ?*anyopaque) callconv(.C) ?*PDMenuItem,
-    addOptionsMenuItem: *const fn (title: [*c]const u8, optionTitles: [*c][*c]const u8, optionsCount: c_int, f: ?PDMenuItemCallbackFunction, userdata: ?*anyopaque) callconv(.C) ?*PDMenuItem,
+    setMenuImage: *const fn (bitmap: *LCDBitmap, xOffset: c_int) callconv(.C) void,
+    addMenuItem: *const fn (title: [*:0]const u8, callback: PDMenuItemCallbackFunction, userdata: ?*anyopaque) callconv(.C) *PDMenuItem,
+    addCheckmarkMenuItem: *const fn (title: [*:0]const u8, value: c_int, callback: PDMenuItemCallbackFunction, userdata: ?*anyopaque) callconv(.C) *PDMenuItem,
+    addOptionsMenuItem: *const fn (title: [*:0]const u8, optionTitles: [*][*:0]const u8, optionsCount: c_int, f: PDMenuItemCallbackFunction, userdata: ?*anyopaque) callconv(.C) *PDMenuItem,
     removeAllMenuItems: *const fn () callconv(.C) void,
-    removeMenuItem: *const fn (menuItem: ?*PDMenuItem) callconv(.C) void,
-    getMenuItemValue: *const fn (menuItem: ?*PDMenuItem) callconv(.C) c_int,
-    setMenuItemValue: *const fn (menuItem: ?*PDMenuItem, value: c_int) callconv(.C) void,
-    getMenuItemTitle: *const fn (menuItem: ?*PDMenuItem) callconv(.C) [*c]const u8,
-    setMenuItemTitle: *const fn (menuItem: ?*PDMenuItem, title: [*c]const u8) callconv(.C) void,
-    getMenuItemUserdata: *const fn (menuItem: ?*PDMenuItem) callconv(.C) ?*anyopaque,
-    setMenuItemUserdata: *const fn (menuItem: ?*PDMenuItem, ud: ?*anyopaque) callconv(.C) void,
+    removeMenuItem: *const fn (menuItem: *PDMenuItem) callconv(.C) void,
+    getMenuItemValue: *const fn (menuItem: *PDMenuItem) callconv(.C) c_int,
+    setMenuItemValue: *const fn (menuItem: *PDMenuItem, value: c_int) callconv(.C) void,
+    getMenuItemTitle: *const fn (menuItem: *PDMenuItem) callconv(.C) [*:0]const u8,
+    setMenuItemTitle: *const fn (menuItem: *PDMenuItem, title: [*:0]const u8) callconv(.C) void,
+    getMenuItemUserdata: *const fn (menuItem: *PDMenuItem) callconv(.C) ?*anyopaque,
+    setMenuItemUserdata: *const fn (menuItem: *PDMenuItem, ud: ?*anyopaque) callconv(.C) void,
 
     getReduceFlashing: *const fn () callconv(.C) c_int,
 
@@ -131,8 +131,8 @@ pub const PlaydateSys = extern struct {
     // 1.13
     getTimezoneOffset: *const fn () callconv(.C) i32,
     shouldDisplay24HourTime: *const fn () callconv(.C) c_int,
-    convertEpochToDateTime: *const fn (epoch: u32, datetime: ?*PDDateTime) callconv(.C) void,
-    convertDateTimeToEpoch: *const fn (datetime: ?*PDDateTime) callconv(.C) u32,
+    convertEpochToDateTime: *const fn (epoch: u32, datetime: *PDDateTime) callconv(.C) void,
+    convertDateTimeToEpoch: *const fn (datetime: *PDDateTime) callconv(.C) u32,
 
     // 2.0
     clearICache: *const fn () callconv(.C) void,
@@ -1255,7 +1255,12 @@ pub const JSONEncoder = extern struct {
     writeStringFunc: writeFunc,
     userdata: ?*anyopaque,
 
-    state: u32, //this is pretty, startedTable, startedArray and depth bitfields combined
+    state: packed struct(u32) {
+        pretty: bool,
+        startedTable: bool,
+        startedArray: bool,
+        depth: u29,
+    },
 
     startArray: *const fn (encoder: ?*JSONEncoder) callconv(.C) void,
     addArrayMember: *const fn (encoder: ?*JSONEncoder) callconv(.C) void,
