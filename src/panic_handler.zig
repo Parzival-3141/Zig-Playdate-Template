@@ -35,7 +35,6 @@ pub fn panic(
             var stack_trace_buffer = [_]u8{0} ** 4096;
             var buffer = [_]u8{0} ** 4096;
             var stream = std.io.fixedBufferStream(&stack_trace_buffer);
-
             const stack_trace_string = b: {
                 if (builtin.strip_debug_info) {
                     break :b "Unable to dump stack trace: Debug info stripped";
@@ -45,7 +44,9 @@ pub fn panic(
                         &buffer,
                         "Unable to dump stack trace: Unable to open debug info: {s}\n",
                         .{@errorName(err)},
-                    ) catch break :b "Unable to dump stack trace: Unable to open debug info due unknown error";
+                    ) catch |print_err| switch (print_err) {
+                        error.NoSpaceLeft => unreachable, // You'd have to intentionally create a ridiculously long error name to break this
+                    };
                     break :b to_print;
                 };
                 std.debug.writeCurrentStackTrace(
@@ -53,7 +54,13 @@ pub fn panic(
                     debug_info,
                     .no_color,
                     null,
-                ) catch break :b "Unable to dump stack trace: Unknown error writng stack trace";
+                ) catch |err| switch (err) {
+                    error.NoSpaceLeft => {
+                        const trunc_msg = "... stack trace truncated.";
+                        @memcpy(buffer[buffer.len - trunc_msg.len ..], trunc_msg);
+                    },
+                    else => break :b "Unable to dump stack trace: Unknown error while writing stack trace",
+                };
 
                 //NOTE: playdate.system.error (and all Playdate APIs that deal with strings) require a null termination
                 const null_char_index = @min(stream.pos, stack_trace_buffer.len - 1);

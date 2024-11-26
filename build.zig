@@ -49,7 +49,10 @@ pub fn build(b: *std.Build) !void {
 
     try addCopyDirectory(writer, "assets", "./assets");
 
-    const playdate_sdk_path = try std.process.getEnvVarOwned(b.allocator, "PLAYDATE_SDK_PATH");
+    const playdate_sdk_path = std.process.getEnvVarOwned(b.allocator, "PLAYDATE_SDK_PATH") catch |err| switch (err) {
+        error.EnvironmentVariableNotFound => @panic("PLAYDATE_SDK_PATH environment variable not found"),
+        else => return err,
+    };
     const pdc_path = b.pathJoin(&.{ playdate_sdk_path, "bin", if (os_tag == .windows) "pdc.exe" else "pdc" });
     const pd_simulator_path = switch (os_tag) {
         .linux => b.pathJoin(&.{ playdate_sdk_path, "bin", "PlaydateSimulator" }),
@@ -59,7 +62,7 @@ pub fn build(b: *std.Build) !void {
     };
 
     const pdc = b.addSystemCommand(&.{pdc_path});
-    pdc.addDirectorySourceArg(source_dir);
+    pdc.addDirectoryArg(source_dir);
     pdc.setName("pdc");
     const pdx = pdc.addOutputFileArg(pdx_file_name);
 
