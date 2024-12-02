@@ -14,7 +14,7 @@ pub export fn eventHandler(playdate: *pdapi.PlaydateAPI, event: pdapi.PDSystemEv
 
     _ = arg;
     switch (event) {
-        .EventInit => {
+        .init => {
             //NOTE: Initalizing the panic handler should be the first thing that is done.
             //      If a panic happens before calling this, the simulator or hardware will
             //      just crash with no message.
@@ -54,10 +54,15 @@ fn update_and_render(userdata: ?*anyopaque) callconv(.C) c_int {
 
     const to_draw = "Hello from Zig!";
 
-    playdate.graphics.clear(@intFromEnum(pdapi.LCDSolidColor.ColorWhite));
-    const pixel_width = playdate.graphics.drawText(to_draw, to_draw.len, .UTF8Encoding, 0, 0);
+    playdate.graphics.clear(.{ .solid = .white });
+    const pixel_width = playdate.graphics.drawText(to_draw, to_draw.len, .utf8, 0, 0);
     _ = pixel_width;
-    playdate.graphics.drawBitmap(playdate_image, pdapi.LCD_COLUMNS / 2 - 16, pdapi.LCD_ROWS / 2 - 16, .BitmapUnflipped);
+    playdate.graphics.drawBitmap(
+        playdate_image,
+        pdapi.LCD_COLUMNS / 2 - 16,
+        pdapi.LCD_ROWS / 2 - 16,
+        .unflipped,
+    );
 
     //returning 1 signals to the OS to draw the frame.
     //we always want this frame drawn
