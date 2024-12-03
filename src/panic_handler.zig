@@ -7,7 +7,25 @@ pub fn init(playdate: *pdapi.PlaydateAPI) void {
     global_playate = playdate;
 }
 
-// @Todo threading?
+// TODO: Fix panics in the simulator
+//
+// So the playdate error function says it pauses execution after printing to the console,
+// but it returns execution right back to the caller like nothing happened.
+// It seems like after printing it sets a flag to pause the sim, then returns.
+// Then when your callback returns execution back to the simulator,
+// it follows the "paused" control flow in the main loop, so your game stops being updated
+// but the main simulator application can keep responding.
+
+// This obviously breaks the panic contract, but sitting in a while loop doesn't work either
+// since it freezes the main simulator application.
+
+// An idea is to save the return address when entering game code so if we panic we can jump back to the simulator
+// as if we returned normally. This probably requires rewinding the stack somehow. Maybe taking a snapshot of all the
+// registers and restoring them on panic would work? (Sounds like a task switch! ;)
+
+// I have no idea if this even applies on the actual hardware.
+
+// TODO: threading?
 var panic_stage: u8 = 0;
 
 pub fn panic(
@@ -25,11 +43,15 @@ pub fn panic(
             // a panic happened while trying to print the previous panic message
             panic_stage = 2;
             global_playate.system.@"error"("Panicked during a panic. Aborting.");
-            while (true) @breakpoint();
+            while (true) {
+                @breakpoint();
+            }
         },
         else => {
             // Panicked while printing "Panicked during a panic."
-            while (true) @breakpoint();
+            while (true) {
+                @breakpoint();
+            }
         },
     }
 
@@ -121,7 +143,7 @@ pub fn panic(
     }
 
     while (true) {
-        @breakpoint();
+        // @breakpoint(); // TODO crashes the simulator.
     }
 }
 
