@@ -8,8 +8,9 @@ pub fn build(b: *std.Build) !void {
 
     const writer = b.addWriteFiles();
     const source_dir = writer.getDirectory();
-    writer.step.name = "write source directory";
+    writer.step.name = "build pdx source directory";
 
+    // To run our pdex in the simulator it needs to be built as a simple shared library.
     const lib = b.addSharedLibrary(.{
         .name = "pdex",
         .root_source_file = b.path("src/main.zig"),
@@ -30,18 +31,25 @@ pub fn build(b: *std.Build) !void {
     const playdate_target = b.resolveTargetQuery(try std.zig.CrossTarget.parse(.{
         .arch_os_abi = "thumb-freestanding-eabihf",
         .cpu_features = "cortex_m7+vfp4d16sp",
+        .object_format = "elf",
     }));
+
     const elf = b.addExecutable(.{
-        .name = "pdex.elf",
+        .name = "pdex",
         .root_source_file = b.path("src/main.zig"),
         .target = playdate_target,
         .optimize = optimize,
         .pic = true,
     });
+    // these arguments are included in the makefiles, though I'm not sure they're necessary.
+    // elf.link_function_sections = true;
+    // elf.link_data_sections = true;
+    // elf.link_gc_sections = true;
+
     elf.link_emit_relocs = true;
     elf.entry = .{ .symbol_name = "eventHandler" };
 
-    elf.setLinkerScriptPath(b.path("link_map.ld"));
+    elf.setLinkerScript(b.path("link_map.ld"));
     if (optimize == .ReleaseFast) {
         elf.root_module.omit_frame_pointer = true;
     }
@@ -56,14 +64,13 @@ pub fn build(b: *std.Build) !void {
     const pdc_path = b.pathJoin(&.{ playdate_sdk_path, "bin", if (os_tag == .windows) "pdc.exe" else "pdc" });
     const pd_simulator_path = switch (os_tag) {
         .linux => b.pathJoin(&.{ playdate_sdk_path, "bin", "PlaydateSimulator" }),
-        .macos => "open", // `open` focuses the window, while running the simulator directry doesn't.
+        .macos => "open", // `open` focuses the window, while running the simulator directly doesn't.
         .windows => b.pathJoin(&.{ playdate_sdk_path, "bin", "PlaydateSimulator.exe" }),
         else => @panic("Unsupported OS"),
     };
 
     const pdc = b.addSystemCommand(&.{pdc_path});
     pdc.addDirectoryArg(source_dir);
-    pdc.setName("pdc");
     const pdx = pdc.addOutputFileArg(pdx_file_name);
 
     b.installDirectory(.{

@@ -13,8 +13,10 @@
 */
 
 /*
-	NOTE(Daniel Bokser): Had to add this PHDRS contstruct in to force however Zig invokes the linker 
-	to make sure there is only one combined ELF segment, which is what PDC seems to expect.
+
+
+	NOTE(Daniel Bokser): Had to add this PHDRS construct to ensure that however Zig invokes the linker, 
+	it'll create only one combined ELF segment, which is what PDC seems to expect.
 */
 PHDRS
 {
@@ -23,8 +25,8 @@ PHDRS
 SECTIONS
 {
 	/*
-		NOTE(Daniel Bokser): Had to add this in to force however Zig now invokes the linker 
-		to make sure everything starts at address 0, which is what PDC seems to expect.
+		NOTE(Daniel Bokser): Had to add this in to ensure that however Zig invokes the linker, 
+		it'll make sure everything starts at address 0, which is what PDC seems to expect.
 	*/
 	. = 0;
 
