@@ -70,6 +70,7 @@ pub fn build(b: *std.Build) !void {
     };
 
     const pdc = b.addSystemCommand(&.{pdc_path});
+    pdc.setName("run pdc (" ++ pdx_file_name ++ ")");
     pdc.addDirectoryArg(source_dir);
     const pdx = pdc.addOutputFileArg(pdx_file_name);
 
@@ -85,8 +86,9 @@ pub fn build(b: *std.Build) !void {
     });
 
     const run_cmd = b.addSystemCommand(&.{pd_simulator_path});
-    run_cmd.addDirectorySourceArg(pdx);
-    run_cmd.setName("PlaydateSimulator");
+    run_cmd.setName("run PlaydateSimulator (" ++ pdx_file_name ++ ")");
+    run_cmd.addDirectoryArg(pdx);
+
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
     run_step.dependOn(b.getInstallStep());
