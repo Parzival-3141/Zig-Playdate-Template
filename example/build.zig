@@ -22,39 +22,36 @@ pub fn build(b: *std.Build) !void {
         .root_source_file = b.path("src/main.zig"),
         .optimize = optimize,
         .sdk_path = sdk_path,
-        // .build_for_simulator = true, // TODO: would be set by addRunSimulator as well?
     });
 
-    // This copies the given directory into the pdx source tree.
-    // NOTE: I think this is redundant. The user can access the pdx_source field directly instead.
-    // game.addIncludePath(b.path("assets"));
-
-    // You have access to the artifact and pdx writefile for more custom build logic
+    // You have access to the artifact and pdx writefile for more custom build logic.
+    // Unfortunately due to how build steps work you have to apply your compile logic
+    // twice; once for the device and once for the simulator. You can easily wrap this
+    // inside a function though.
     _ = game.pdx_source.addCopyDirectory(b.path("assets/"), "assets", .{});
-    // game.artifact.addModule(...)
+    // game.device.addModule(...)
+    // game.simulator.addModule(...)
 
-    // there should be a simple and custom api for installing.
-    // simple just installs to prefix (i.e. b.installArtifact).
-    // custom would control where? should return install step too.
+    // Installs the compiled example.pdx to the prefix directory as part of the
+    // top-level Install step.
     game.install(b);
 
-    // TODO:
-    // // This *creates* a Run step in the build graph, that will launch the game
-    // // in the simulator. This ensures the game will be compiled for the
-    // // simulator as well.
-    // const run_sim = playdate.addRunSimulator(game);
+    // This *creates* a Run step in the build graph, that will launch the game
+    // in the simulator. Calling this function ensures the game will be compiled
+    // for the simulator as well.
+    const run_sim = playdate.addRunSimulator(b, game);
 
-    // // By making the run step depend on the install step, it will be run from the
-    // // installation directory rather than directly from within the cache directory.
-    // // This is not necessary, however, if the application depends on other installed
-    // // files, this ensures they will be present and in the expected location.
-    // run_sim.step.dependOn(b.getInstallStep());
+    // By making the run step depend on the install step, it will be run from the
+    // installation directory rather than directly from within the cache directory.
+    // This is not necessary, however, if the application depends on other installed
+    // files, this ensures they will be present and in the expected location.
+    run_sim.step.dependOn(b.getInstallStep());
 
-    // // This creates a build step. It will be visible in the `zig build --help` menu,
-    // // and can be selected like this: `zig build run`
-    // // This will evaluate the `run` step rather than the default, which is "install".
-    // const run_step = b.step("run", "Run the game in the Simulator");
-    // run_step.dependOn(&run_sim.step);
+    // This creates a build step. It will be visible in the `zig build --help` menu,
+    // and can be selected like this: `zig build run`
+    // This will evaluate the `run` step rather than the default, which is "install".
+    const run_step = b.step("run", "Run the game in the Simulator");
+    run_step.dependOn(&run_sim.step);
 
     // TODO:
     // Creates a step for unit testing. This only builds the test executable

@@ -1,7 +1,7 @@
 # Zig Template for Playdate
 
 ## Overview
-Write your [Playdate](https://play.date) game in [Zig](https://ziglang.org)!  Use this template as a starting point to write your games in Zig.  The `build.zig` will allow you to generate a Playdate `.pdx` executable that will work both in the simulator and on hardware.
+Write your [Playdate](https://play.date) game in [Zig](https://ziglang.org)!  Use this package and it's example app as a starting point to write your games in Zig. The `build.zig` will allow you to generate a Playdate `.pdx` executable that will work both in the simulator and on hardware.
 
 ## Things To Be Aware Of
 - Not Everything Has Been Tested
@@ -16,19 +16,17 @@ Write your [Playdate](https://play.date) game in [Zig](https://ziglang.org)!  Us
 ##  <a name="Requirements"></a>Requirements
 - Either macOS, Windows, or Linux.
 - Zig compiler 0.13.0 or newer. Pulling down the latest build is your best bet.
-- [Playdate SDK](https://play.date/dev/) 2.5 or later installed.
+- [Playdate SDK](https://play.date/dev/) 2.6 or later installed.
 
 ## Contents
-- `build.zig` -- Prepopulated with code that will generate the Playdate `.pdx` executable.
-- `src/playdate_api_definitions.zig` -- Contains all of the Playdate API code.  This is 1-to-1 with [Playdate's C API](https://sdk.play.date/2.0.0/Inside%20Playdate%20with%20C.html)
-- `main.zig` -- Entry point for your code!  Contains example code that prints "Hello from Zig!" and an draws an example image to the screen.
-- `panic_handler.zig` -- The default Zig panic handler will cause the simulator and hardware to crash without any error message. I wrote my own handler, so panics should now be handled gracefully with proper error messages.
-- `assets/` -- This folder will contain your assets and has an example image that is drawn to the screen in the example code in `main.zig`.
+- `build.zig` -- Contains build functions that will generate the Playdate `.pdx` executable.
+- `src/root.zig` -- Contains all of the Playdate API code.  This is 1-to-1 with [Playdate's C API](https://sdk.play.date/2.6.2/Inside%20Playdate%20with%20C.html)
+- `src/panic_handler.zig` -- The default Zig panic handler will cause the simulator and hardware to crash without any error message. I wrote my own handler, so panics should now be handled gracefully with proper error messages.
 
 ## Run Example Code
 1. Make sure the Playdate SDK is installed, Zig is installed and in your PATH, and all other [requirements](#Requirements) are met.
 1. Make sure the Playdate Simulator is closed.
-1. Run `zig build run`.
+1. Run `zig build run` in the `example` directory.
     1. If there any errors, double check `PLAYDATE_SDK_PATH` is correctly set.
 1. You should now see simulator come up and look the [screenshot here](#screenshot).
 1. When you quit out to the home menu, change the home menu to view as list and you should see the "Hello World Zig" program with a custom icon [like here](#home-screen-list-view).
