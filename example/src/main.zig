@@ -1,8 +1,7 @@
 const std = @import("std");
-const pdapi = @import("playdate_api_definitions.zig");
-const panic_handler = @import("panic_handler.zig");
+const pdapi = @import("playdate");
 
-pub const panic = panic_handler.panic;
+pub const panic = pdapi.panic_handler.panic;
 
 const ExampleGlobalState = struct {
     playdate: *pdapi.PlaydateAPI,
@@ -18,7 +17,7 @@ pub export fn eventHandler(playdate: *pdapi.PlaydateAPI, event: pdapi.PDSystemEv
             //NOTE: Initalizing the panic handler should be the first thing that is done.
             //      If a panic happens before calling this, the simulator or hardware will
             //      just crash with no message.
-            panic_handler.init(playdate);
+            pdapi.panic_handler.init(playdate);
 
             const playdate_image = playdate.graphics.loadBitmap("assets/images/playdate_image", null).?;
             const font = playdate.graphics.loadFont("/System/Fonts/Asheville-Sans-14-Bold.pft", null).?;

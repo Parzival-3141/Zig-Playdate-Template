@@ -2,6 +2,8 @@ const std = @import("std");
 const builtin = @import("builtin");
 const assert = std.debug.assert;
 
+pub const panic_handler = @import("panic_handler.zig");
+
 pub const PlaydateAPI = extern struct {
     system: *const PlaydateSys,
     file: *const PlaydateFile,
@@ -12,6 +14,8 @@ pub const PlaydateAPI = extern struct {
     lua: *const PlaydateLua,
     json: *const PlaydateJSON,
     scoreboards: *const PlaydateScoreboards,
+
+    pub const version = "2.6.2";
 };
 
 /////////Zig Utility Functions///////////
