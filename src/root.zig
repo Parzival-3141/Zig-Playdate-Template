@@ -25,13 +25,13 @@ pub fn is_compiling_for_playdate_hardware() bool {
 
 ////////Buttons//////////////
 pub const PDButtons = packed struct(c_int) {
-    left: bool,
-    right: bool,
-    up: bool,
-    down: bool,
-    b: bool,
-    a: bool,
-    _padding: u26,
+    left: bool = false,
+    right: bool = false,
+    up: bool = false,
+    down: bool = false,
+    b: bool = false,
+    a: bool = false,
+    _padding: u26 = 0,
 };
 
 ///////////////System/////////////////////////
@@ -597,7 +597,7 @@ pub const FileOptions = packed struct(c_int) {
     read: bool,
     read_data: bool,
     modify: enum(u2) { write, append }, // silly implementation leakage
-    _padding: u28,
+    _padding: u28 = 0,
 };
 
 pub const FileWhence = enum(c_int) {

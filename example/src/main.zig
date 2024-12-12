@@ -5,7 +5,10 @@ pub const panic = pdapi.panic_handler.panic;
 
 const ExampleGlobalState = struct {
     playdate: *pdapi.PlaydateAPI,
-    playdate_image: *pdapi.LCDBitmap,
+    zig_image: *pdapi.LCDBitmap,
+    font: *pdapi.LCDFont,
+    image_width: c_int,
+    image_height: c_int,
 };
 
 pub export fn eventHandler(playdate: *pdapi.PlaydateAPI, event: pdapi.PDSystemEvent, arg: u32) callconv(.C) c_int {
@@ -19,8 +22,12 @@ pub export fn eventHandler(playdate: *pdapi.PlaydateAPI, event: pdapi.PDSystemEv
             //      just crash with no message.
             pdapi.panic_handler.init(playdate);
 
-            const playdate_image = playdate.graphics.loadBitmap("assets/images/playdate_image", null).?;
-            const font = playdate.graphics.loadFont("/System/Fonts/Asheville-Sans-14-Bold.pft", null).?;
+            const zig_image = playdate.graphics.loadBitmap("assets/images/zig-playdate", null).?;
+            var image_width: c_int = undefined;
+            var image_height: c_int = undefined;
+            playdate.graphics.getBitmapData(zig_image, &image_width, &image_height, null, null, null);
+
+            const font = playdate.graphics.loadFont("/System/Fonts/Roobert-20-Medium.pft", null).?;
             playdate.graphics.setFont(font);
 
             const global_state: *ExampleGlobalState =
@@ -34,7 +41,10 @@ pub export fn eventHandler(playdate: *pdapi.PlaydateAPI, event: pdapi.PDSystemEv
             );
             global_state.* = .{
                 .playdate = playdate,
-                .playdate_image = playdate_image,
+                .font = font,
+                .zig_image = zig_image,
+                .image_width = image_width,
+                .image_height = image_height,
             };
 
             playdate.system.setUpdateCallback(update_and_render, global_state);
@@ -49,19 +59,39 @@ fn update_and_render(userdata: ?*anyopaque) callconv(.C) c_int {
 
     const global_state: *ExampleGlobalState = @ptrCast(@alignCast(userdata.?));
     const playdate = global_state.playdate;
-    const playdate_image = global_state.playdate_image;
+    const zig_image = global_state.zig_image;
 
-    const to_draw = "Hello from Zig!";
-
-    playdate.graphics.clear(.{ .solid = .white });
-    const pixel_width = playdate.graphics.drawText(to_draw, to_draw.len, .utf8, 0, 0);
-    _ = pixel_width;
-    playdate.graphics.drawBitmap(
-        playdate_image,
-        pdapi.LCD_COLUMNS / 2 - 16,
-        pdapi.LCD_ROWS / 2 - 16,
-        .unflipped,
+    const to_draw = "Hold Ⓐ";
+    const text_width = playdate.graphics.getTextWidth(
+        global_state.font,
+        to_draw,
+        to_draw.len,
+        .utf8,
+        0,
     );
+
+    var draw_mode: pdapi.LCDBitmapDrawMode = .copy;
+    var clear_color: pdapi.LCDSolidColor = .white;
+
+    var buttons: pdapi.PDButtons = .{};
+    playdate.system.getButtonState(&buttons, null, null);
+    if (buttons.a) {
+        draw_mode = .inverted;
+        clear_color = .black;
+    }
+
+    playdate.graphics.setDrawMode(draw_mode);
+    playdate.graphics.clear(.{ .solid = clear_color });
+
+    playdate.graphics.drawBitmap(zig_image, 0, 0, .unflipped);
+    const pixel_width = playdate.graphics.drawText(
+        to_draw,
+        to_draw.len,
+        .utf8,
+        @divTrunc(pdapi.LCD_COLUMNS - text_width, 2),
+        pdapi.LCD_ROWS - playdate.graphics.getFontHeight(global_state.font) - 20,
+    );
+    _ = pixel_width;
 
     //returning 1 signals to the OS to draw the frame.
     //we always want this frame drawn

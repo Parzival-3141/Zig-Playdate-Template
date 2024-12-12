@@ -18,7 +18,7 @@ pub fn build(b: *std.Build) !void {
     };
 
     const game = playdate.addGame(b, playdate_dep, .{
-        .name = "example",
+        .name = "hello-zig",
         .root_source_file = b.path("src/main.zig"),
         .optimize = optimize,
         .sdk_path = sdk_path,
@@ -29,10 +29,11 @@ pub fn build(b: *std.Build) !void {
     // twice; once for the device and once for the simulator. You can easily wrap this
     // inside a function though.
     _ = game.pdx_source.addCopyDirectory(b.path("assets/"), "assets", .{});
+    _ = game.pdx_source.addCopyFile(b.path("pdxinfo"), "pdxinfo");
     // game.device.addModule(...)
     // game.simulator.addModule(...)
 
-    // Installs the compiled example.pdx to the prefix directory as part of the
+    // Installs the compiled hello-zig.pdx to the prefix directory as part of the
     // top-level Install step.
     game.install(b);
 
