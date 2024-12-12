@@ -41,12 +41,6 @@ pub fn build(b: *std.Build) !void {
     // for the simulator as well.
     const run_sim = playdate.addRunSimulator(b, game);
 
-    // By making the run step depend on the install step, it will be run from the
-    // installation directory rather than directly from within the cache directory.
-    // This is not necessary, however, if the application depends on other installed
-    // files, this ensures they will be present and in the expected location.
-    run_sim.step.dependOn(b.getInstallStep());
-
     // This creates a build step. It will be visible in the `zig build --help` menu,
     // and can be selected like this: `zig build run`
     // This will evaluate the `run` step rather than the default, which is "install".

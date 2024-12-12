@@ -26,19 +26,22 @@ pub const Game = struct {
     simulator: *Step.Compile,
     pdx_source: *Step.WriteFile,
     pdx_output: LazyPath,
+    install_step: ?*Step.InstallDir,
 
     /// Installs the compiled game.pdx to the prefix directory
-    pub fn install(game: Game, b: *Build) void {
+    pub fn install(game: *Game, b: *Build) void {
         b.getInstallStep().dependOn(&game.addInstall(b, .prefix).step);
     }
 
     /// Installs the compiled game.pdx to the `install_dir`
-    pub fn addInstall(game: Game, b: *Build, install_dir: Build.InstallDir) *Build.Step.InstallDir {
-        return b.addInstallDirectory(.{
+    pub fn addInstall(game: *Game, b: *Build, install_dir: Build.InstallDir) *Step.InstallDir {
+        const install_step = b.addInstallDirectory(.{
             .source_dir = game.pdx_output,
             .install_dir = install_dir,
             .install_subdir = b.fmt("{s}.pdx", .{game.name}),
         });
+        game.install_step = install_step;
+        return install_step;
     }
 };
 
@@ -51,17 +54,19 @@ pub fn addGame(b: *Build, playdate_dep: *Build.Dependency, options: GameOptions)
         .simulator = undefined,
         .pdx_source = b.addWriteFiles(),
         .pdx_output = undefined,
+        .install_step = null,
     };
 
     // Add device pdex
     {
-        const playdate_target = b.resolveTargetQuery(
-            std.zig.CrossTarget.parse(.{
-                .arch_os_abi = "thumb-freestanding-eabihf",
-                .cpu_features = "cortex_m7+vfp4d16sp",
-                .object_format = "elf",
-            }) catch unreachable,
-        );
+        const playdate_target = b.resolveTargetQuery(.{
+            .cpu_arch = .thumb,
+            .os_tag = .freestanding,
+            .abi = .eabihf,
+            .cpu_model = .{ .explicit = &std.Target.arm.cpu.cortex_m7 },
+            .cpu_features_add = std.Target.arm.featureSet(&.{.vfp4d16sp}),
+            .ofmt = .elf,
+        });
 
         const pdex = b.addExecutable(.{
             .name = "pdex",
@@ -126,14 +131,23 @@ pub fn addRunSimulator(b: *Build, game: *Game) *Step.Run {
         else => @panic("Unsupported OS"),
     };
 
+    const pdx_output: LazyPath = if (game.install_step) |install|
+        .{ .cwd_relative = b.getInstallPath(
+            install.options.install_dir,
+            install.options.install_subdir,
+        ) }
+    else
+        game.pdx_output;
+
     // It seems fine to just copy the simulator pdex after running the pdc.
     // Yucky, but I'm not sure how else to build and include the pdex depending
     // on whether the simulator step is run.
-    const copy_step = CopyFileStep.create(b, game.simulator.getEmittedBin(), game.pdx_output);
+    const copy_step = CopyFileStep.create(b, game.simulator.getEmittedBin(), pdx_output);
 
     const run_sim = b.addSystemCommand(&.{simulator_path});
-    run_sim.addDirectoryArg(game.pdx_output);
+    run_sim.addDirectoryArg(pdx_output);
     run_sim.step.dependOn(&copy_step.step);
+    if (game.install_step) |install| run_sim.step.dependOn(&install.step);
     return run_sim;
 }
 

@@ -14,6 +14,8 @@ pub const PlaydateAPI = extern struct {
     lua: *const PlaydateLua,
     json: *const PlaydateJSON,
     scoreboards: *const PlaydateScoreboards,
+
+    pub const version = "2.6.2";
 };
 
 /////////Zig Utility Functions///////////
