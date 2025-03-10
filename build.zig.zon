@@ -1,8 +1,9 @@
 .{
-    .name = "zig-playdate-bindings",
+    .name = .zig_playdate_bindings,
     .version = "1.0.0",
+    .fingerprint = 0xe59713a6c16a4dfc,
 
-    .minimum_zig_version = "0.13.0",
+    .minimum_zig_version = "0.14.0",
 
     .paths = .{
         "build.zig",

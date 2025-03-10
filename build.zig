@@ -70,10 +70,12 @@ pub fn addGame(b: *Build, playdate_dep: *Build.Dependency, options: GameOptions)
 
         const pdex = b.addExecutable(.{
             .name = "pdex",
-            .root_source_file = options.root_source_file,
-            .target = playdate_target,
-            .optimize = options.optimize,
-            .pic = true,
+            .root_module = b.createModule(.{
+                .root_source_file = options.root_source_file,
+                .target = playdate_target,
+                .optimize = options.optimize,
+                .pic = true,
+            }),
         });
         pdex.root_module.addImport("playdate", playdate_dep.module("playdate")); // TODO: should this be exposed to the user?
 
@@ -96,11 +98,14 @@ pub fn addGame(b: *Build, playdate_dep: *Build.Dependency, options: GameOptions)
 
     // Add simulator pdex
     {
-        const pdex = b.addSharedLibrary(.{
+        const pdex = b.addLibrary(.{
             .name = "pdex",
-            .root_source_file = options.root_source_file,
-            .target = b.host,
-            .optimize = options.optimize,
+            .linkage = .dynamic,
+            .root_module = b.createModule(.{
+                .root_source_file = options.root_source_file,
+                .target = b.graph.host,
+                .optimize = options.optimize,
+            }),
         });
         pdex.root_module.addImport("playdate", playdate_dep.module("playdate")); // TODO: should this be exposed to the user?
         game.simulator = pdex;
@@ -113,7 +118,7 @@ pub fn addGame(b: *Build, playdate_dep: *Build.Dependency, options: GameOptions)
     const pdc_path = b.pathJoin(&.{
         options.sdk_path,
         "bin",
-        if (b.host.result.os.tag == .windows) "pdc.exe" else "pdc",
+        if (b.graph.host.result.os.tag == .windows) "pdc.exe" else "pdc",
     });
 
     const run_pdc = b.addSystemCommand(&.{ pdc_path, "-sdkpath", options.sdk_path });
@@ -124,7 +129,7 @@ pub fn addGame(b: *Build, playdate_dep: *Build.Dependency, options: GameOptions)
 }
 
 pub fn addRunSimulator(b: *Build, game: *Game) *Step.Run {
-    const simulator_path = switch (b.host.result.os.tag) {
+    const simulator_path = switch (b.graph.host.result.os.tag) {
         .linux => b.pathJoin(&.{ game.sdk_path, "bin", "PlaydateSimulator" }),
         .macos => "open", // `open` focuses the window, while running the simulator directly doesn't.
         .windows => b.pathJoin(&.{ game.sdk_path, "bin", "PlaydateSimulator.exe" }),
@@ -151,6 +156,7 @@ pub fn addRunSimulator(b: *Build, game: *Game) *Step.Run {
     return run_sim;
 }
 
+// Based on Step.InstallFile
 const CopyFileStep = struct {
     step: Step,
     file: LazyPath,
@@ -161,7 +167,10 @@ const CopyFileStep = struct {
         copy.* = .{
             .step = Step.init(.{
                 .id = .custom,
-                .name = owner.dupe("CopyFile"),
+                .name = owner.fmt("copy {s} to {s}", .{
+                    file.getDisplayName(),
+                    dest_dir.getDisplayName(),
+                }),
                 .owner = owner,
                 .makeFn = make,
             }),
@@ -173,21 +182,22 @@ const CopyFileStep = struct {
         return copy;
     }
 
-    pub fn make(step: *Step, _: std.Progress.Node) !void {
+    pub fn make(step: *Step, _: Step.MakeOptions) !void {
         const copy: *CopyFileStep = @fieldParentPtr("step", step);
+        try step.singleUnchangingWatchInput(copy.file);
+        const b = step.owner;
 
-        const file_path = copy.file.getPath(step.owner);
-        var dest_dir = try std.fs.cwd().openDir(copy.dest_dir.getPath(step.owner), .{});
-        defer dest_dir.close();
-
-        try std.fs.cwd().copyFile(
-            file_path,
-            dest_dir,
-            step.owner.fmt(
-                "pdex{s}",
-                .{step.owner.host.result.dynamicLibSuffix()},
-            ),
-            .{},
-        );
+        const full_src_path = copy.file.getPath2(b, step);
+        const full_dest_path = copy.dest_dir.path(b, b.fmt(
+            "pdex{s}",
+            .{b.graph.host.result.dynamicLibSuffix()},
+        )).getPath2(b, step);
+        const cwd = std.fs.cwd();
+        const prev = std.fs.Dir.updateFile(cwd, full_src_path, cwd, full_dest_path, .{}) catch |err| {
+            return step.fail("unable to update file from '{s}' to '{s}': {s}", .{
+                full_src_path, full_dest_path, @errorName(err),
+            });
+        };
+        step.result_cached = prev == .fresh;
     }
 };

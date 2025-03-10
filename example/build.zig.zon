@@ -1,8 +1,8 @@
 .{
-    .name = "example",
+    .name = .example,
     .version = "0.0.0",
-
-    .minimum_zig_version = "0.13.0",
+    .fingerprint = 0x6eec9b9fe594794a,
+    .minimum_zig_version = "0.14.0",
 
     .dependencies = .{
         .playdate = .{ .path = ".." },
@@ -11,6 +11,7 @@
     .paths = .{
         "build.zig",
         "build.zig.zon",
+        "pdxinfo",
         "src",
         "assets",
     },

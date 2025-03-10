@@ -15,7 +15,7 @@ pub fn panic(
     error_return_trace: ?*std.builtin.StackTrace,
     return_address: ?usize,
 ) noreturn {
-    @setCold(true);
+    @branchHint(.cold);
     _ = error_return_trace;
     _ = return_address;
 

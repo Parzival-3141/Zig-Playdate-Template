@@ -30,8 +30,8 @@ pub fn build(b: *std.Build) !void {
     // inside a function though.
     _ = game.pdx_source.addCopyDirectory(b.path("assets/"), "assets", .{});
     _ = game.pdx_source.addCopyFile(b.path("pdxinfo"), "pdxinfo");
-    // game.device.addModule(...)
-    // game.simulator.addModule(...)
+    // game.device.addModule(foo)
+    // game.simulator.addModule(foo)
 
     // Installs the compiled hello-zig.pdx to the prefix directory as part of the
     // top-level Install step.
